@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Gesture Slides Test</h2>
+    <button onclick="next()">Next Slide</button>
+    <button onclick="previous()">Previous Slide</button>
+    <button onclick="status()">Check Status</button>
+    <pre id="result">Click a button to test</pre>
+    
+    <script>
+        async function next() {
+            const response = await fetch('http://localhost:3000/gesture/next', {method: 'POST'});
+            const data = await response.json();
+            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        }
+        
+        async function previous() {
+            const response = await fetch('http://localhost:3000/gesture/previous', {method: 'POST'});
+            const data = await response.json();
+            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        }
+        
+        async function status() {
+            const response = await fetch('http://localhost:3000/presentation/status');
+            const data = await response.json();
+            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>
