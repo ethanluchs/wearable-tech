@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Gesture Slides Viewer</title>
     <meta charset="UTF-8">
@@ -210,37 +211,78 @@
             transition: width 0.3s ease;
         }
 
+        .presentation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .presentation-card {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .presentation-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .presentation-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .presentation-card h3 {
+            margin: 8px 0 4px 0;
+            font-size: 14px;
+        }
+
+        .presentation-card p {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .presentation-container {
                 padding: 10px;
             }
-            
+
             .header {
                 flex-direction: column;
                 gap: 10px;
                 text-align: center;
             }
-            
+
             .controls {
                 flex-direction: column;
                 gap: 15px;
             }
-            
+
             .presentation-input {
                 width: 100%;
             }
-            
+
             .slide-title {
                 font-size: 32px;
             }
-            
+
             .slide-text {
                 font-size: 18px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="presentation-container">
         <div class="header">
@@ -269,13 +311,16 @@
             </div>
 
             <div class="load-section">
-                <input 
-                    type="text" 
-                    class="presentation-input" 
-                    id="presentationInput" 
-                    placeholder="Enter Google Slides presentation ID"
-                >
+                <input type="text" class="presentation-input" id="presentationInput"
+                    placeholder="Enter Google Slides presentation ID">
                 <button class="load-btn" onclick="loadPresentation()">Load</button>
+            </div>
+
+            <div class="presentation-browser">
+                <button onclick="loadPresentationList()">Browse My Presentations</button>
+                <div id="presentationGrid" style="display:none;">
+                    <!-- Will populate with presentation cards -->
+                </div>
             </div>
 
             <div class="status-indicator">
@@ -292,12 +337,12 @@
         let totalSlides = 0;
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             checkStatus();
             setInterval(checkStatus, 5000);
-            
+
             // Allow Enter key to load presentation
-            document.getElementById('presentationInput').addEventListener('keypress', function(e) {
+            document.getElementById('presentationInput').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     loadPresentation();
                 }
@@ -308,9 +353,9 @@
             try {
                 const response = await fetch(`${BASE_URL}/presentation/status`);
                 const data = await response.json();
-                
+
                 updateStatusIndicator(data.isAuthenticated);
-                
+
                 if (data.isActive && data.totalSlides > 0) {
                     updatePresentationInfo(data);
                 }
@@ -319,10 +364,56 @@
             }
         }
 
+        // Add this function after your existing functions (around line 200+ in your test.html)
+
+        async function loadPresentationList() {
+            try {
+                showLoading(true);
+                const response = await fetch(`${BASE_URL}/presentations`);
+                const data = await response.json();
+
+                if (data.success && data.presentations) {
+                    showPresentationGrid(data.presentations);
+                } else {
+                    showError('Failed to load presentations');
+                }
+            } catch (error) {
+                showError('Error loading presentations: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showPresentationGrid(presentations) {
+            const grid = document.getElementById('presentationGrid');
+
+            if (presentations.length === 0) {
+                grid.innerHTML = '<p>No presentations found</p>';
+                grid.style.display = 'block';
+                return;
+            }
+
+            grid.innerHTML = presentations.map(presentation => `
+        <div class="presentation-card" onclick="selectPresentation('${presentation.id}', '${presentation.name}')">
+            <img src="${presentation.thumbnailLink}" alt="${presentation.name}" />
+            <h3>${presentation.name}</h3>
+            <p>Modified: ${new Date(presentation.modifiedTime).toLocaleDateString()}</p>
+        </div>
+    `).join('');
+
+            grid.style.display = 'block';
+        }
+
+        function selectPresentation(id, name) {
+            document.getElementById('presentationInput').value = id;
+            document.getElementById('presentationGrid').style.display = 'none';
+            loadPresentation(); // Automatically load the selected presentation
+        }
+
         function updateStatusIndicator(isConnected) {
             const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
-            
+
             if (isConnected) {
                 statusDot.className = 'status-dot status-connected';
                 statusText.textContent = 'Connected';
@@ -334,7 +425,7 @@
 
         async function loadPresentation() {
             const presentationId = document.getElementById('presentationInput').value.trim();
-            
+
             if (!presentationId) {
                 showError('Please enter a presentation ID');
                 return;
@@ -371,12 +462,12 @@
             try {
                 const response = await fetch(`${BASE_URL}/presentation/slides`);
                 const data = await response.json();
-                
+
                 if (data.slides) {
                     currentPresentation.slidesData = data.slides;
                     totalSlides = data.totalSlides;
                     currentSlideIndex = data.currentSlideIndex;
-                    
+
                     updatePresentationInfo({
                         title: currentPresentation.title,
                         currentSlide: currentSlideIndex + 1,
@@ -391,10 +482,10 @@
         function updatePresentationInfo(data) {
             document.getElementById('presentationTitle').textContent = data.title || 'Unknown Presentation';
             document.getElementById('slideCounter').textContent = `${data.currentSlide} / ${data.totalSlides}`;
-            
+
             totalSlides = data.totalSlides;
             currentSlideIndex = data.currentSlide - 1;
-            
+
             updateNavigationButtons();
             updateProgressBar();
         }
@@ -406,11 +497,11 @@
 
             const slide = currentPresentation.slidesData[slideIndex];
             const slideDisplay = document.getElementById('slideDisplay');
-            
+
             if (slide) {
                 // Try to use embedded Google Slides viewer first
                 const embedUrl = `https://docs.google.com/presentation/d/${currentPresentation.id}/embed?start=false&loop=false&delayms=60000&slide=${slideIndex}`;
-                
+
                 slideDisplay.innerHTML = `
                     <iframe 
                         class="slide-iframe" 
@@ -432,7 +523,7 @@
                     <div class="slide-progress" id="slideProgress"></div>
                 `;
             }
-            
+
             updateProgressBar();
         }
 
@@ -440,7 +531,7 @@
             try {
                 const response = await fetch(`${BASE_URL}/gesture/next`, { method: 'POST' });
                 const data = await response.json();
-                
+
                 if (data.success) {
                     currentSlideIndex = data.currentSlide - 1;
                     showSlide(currentSlideIndex);
@@ -459,7 +550,7 @@
             try {
                 const response = await fetch(`${BASE_URL}/gesture/previous`, { method: 'POST' });
                 const data = await response.json();
-                
+
                 if (data.success) {
                     currentSlideIndex = data.currentSlide - 1;
                     showSlide(currentSlideIndex);
@@ -477,7 +568,7 @@
         function updateNavigationButtons() {
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
-            
+
             prevBtn.disabled = currentSlideIndex <= 0;
             nextBtn.disabled = currentSlideIndex >= totalSlides - 1;
         }
@@ -498,7 +589,7 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            
+
             if (type === 'success') {
                 errorDiv.style.background = '#d4edda';
                 errorDiv.style.color = '#155724';
@@ -506,7 +597,7 @@
                 errorDiv.style.background = '#f8d7da';
                 errorDiv.style.color = '#721c24';
             }
-            
+
             setTimeout(() => {
                 errorDiv.style.display = 'none';
             }, 3000);
@@ -517,10 +608,10 @@
         }
 
         // Keyboard navigation
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (!currentPresentation) return;
-            
-            switch(e.key) {
+
+            switch (e.key) {
                 case 'ArrowRight':
                 case ' ':
                     e.preventDefault();
@@ -542,4 +633,5 @@
         });
     </script>
 </body>
+
 </html>

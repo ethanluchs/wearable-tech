@@ -134,7 +134,7 @@ export class SlidesAPI {
     async getUserPresentations() {
         const mimeType = 'application/vnd.google-apps.presentation';
         const response = await this.drive.files.list({
-            q: `mimetype='${mimeType}'`,
+            q: `mimeType='${mimeType}'`,
             fields: `files(id,name,thumbnailLink,modifiedTime)`
         });
         return response.data.files;
