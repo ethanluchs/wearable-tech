@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Backend Flow Test</h2>
+    <button onclick="runFullTest()">Test Complete Flow</button>
+    <pre id="output"></pre>
+    
+    <script>
+        async function runFullTest() {
+            const output = document.getElementById('output');
+            
+            try {
+                // Test 1: Auth status
+                output.textContent += '1. Checking auth...\n';
+                const auth = await fetch('/auth/status').then(r => r.json());
+                output.textContent += `   Auth: ${auth.isAuthenticated}\n\n`;
+                
+                if (!auth.isAuthenticated) {
+                    output.textContent += 'Please authenticate first!\n';
+                    return;
+                }
+                
+                // Test 2: Get presentations
+                output.textContent += '2. Getting presentations...\n';
+                const presentations = await fetch('/presentations').then(r => r.json());
+                output.textContent += `   Found: ${presentations.presentations?.length || 0} presentations\n\n`;
+                
+                if (presentations.presentations?.length > 0) {
+                    const firstId = presentations.presentations[0].id;
+                    
+                    // Test 3: Get slides
+                    output.textContent += '3. Getting slides for first presentation...\n';
+                    const slides = await fetch(`/presentations/${firstId}/slides`).then(r => r.json());
+                    output.textContent += `   Found: ${slides.slides?.length || 0} slides\n\n`;
+                    
+                    // Test 4: Load presentation
+                    output.textContent += '4. Loading presentation...\n';
+                    const load = await fetch('/presentation/load', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({presentationId: firstId})
+                    }).then(r => r.json());
+                    
+                    output.textContent += `   Loaded: ${load.success}\n\n`;
+                    output.textContent += 'All tests complete! ✅';
+                }
+                
+            } catch (error) {
+                output.textContent += `ERROR: ${error}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

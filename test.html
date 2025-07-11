@@ -1,30 +1,545 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Gesture Slides Viewer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .presentation-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .slide-counter {
+            font-size: 18px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .slide-display {
+            flex: 1;
+            background: white;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .slide-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .slide-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .slide-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+
+        .slide-text {
+            font-size: 24px;
+            color: #666;
+            line-height: 1.5;
+            max-width: 800px;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 25px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .load-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .presentation-input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        .load-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .load-btn:hover {
+            background: #218838;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .slide-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #667eea;
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .presentation-container {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .presentation-input {
+                width: 100%;
+            }
+            
+            .slide-title {
+                font-size: 32px;
+            }
+            
+            .slide-text {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
 <body>
-    <h2>Gesture Slides Test</h2>
-    <button onclick="next()">Next Slide</button>
-    <button onclick="previous()">Previous Slide</button>
-    <button onclick="status()">Check Status</button>
-    <pre id="result">Click a button to test</pre>
-    
+    <div class="presentation-container">
+        <div class="header">
+            <div class="presentation-title" id="presentationTitle">No Presentation Loaded</div>
+            <div class="slide-counter" id="slideCounter">0 / 0</div>
+        </div>
+
+        <div class="slide-display" id="slideDisplay">
+            <div class="slide-content">
+                <div class="slide-title">Welcome to Gesture Slides</div>
+                <div class="slide-text">Load a Google Slides presentation to begin</div>
+            </div>
+            <div class="slide-progress" id="slideProgress"></div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="controls">
+            <div class="nav-buttons">
+                <button class="nav-btn" id="prevBtn" onclick="previousSlide()" disabled>
+                    ⬅️ Previous
+                </button>
+                <button class="nav-btn" id="nextBtn" onclick="nextSlide()" disabled>
+                    Next ➡️
+                </button>
+            </div>
+
+            <div class="load-section">
+                <input 
+                    type="text" 
+                    class="presentation-input" 
+                    id="presentationInput" 
+                    placeholder="Enter Google Slides presentation ID"
+                >
+                <button class="load-btn" onclick="loadPresentation()">Load</button>
+            </div>
+
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Checking...</span>
+            </div>
+        </div>
+    </div>
+
     <script>
-        async function next() {
-            const response = await fetch('http://localhost:3000/gesture/next', {method: 'POST'});
-            const data = await response.json();
-            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        const BASE_URL = 'http://localhost:3000';
+        let currentPresentation = null;
+        let currentSlideIndex = 0;
+        let totalSlides = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkStatus();
+            setInterval(checkStatus, 5000);
+            
+            // Allow Enter key to load presentation
+            document.getElementById('presentationInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    loadPresentation();
+                }
+            });
+        });
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${BASE_URL}/presentation/status`);
+                const data = await response.json();
+                
+                updateStatusIndicator(data.isAuthenticated);
+                
+                if (data.isActive && data.totalSlides > 0) {
+                    updatePresentationInfo(data);
+                }
+            } catch (error) {
+                updateStatusIndicator(false);
+            }
         }
-        
-        async function previous() {
-            const response = await fetch('http://localhost:3000/gesture/previous', {method: 'POST'});
-            const data = await response.json();
-            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+
+        function updateStatusIndicator(isConnected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (isConnected) {
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = 'Disconnected';
+            }
         }
-        
-        async function status() {
-            const response = await fetch('http://localhost:3000/presentation/status');
-            const data = await response.json();
-            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+
+        async function loadPresentation() {
+            const presentationId = document.getElementById('presentationInput').value.trim();
+            
+            if (!presentationId) {
+                showError('Please enter a presentation ID');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const response = await fetch(`${BASE_URL}/presentation/load`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ presentationId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentPresentation = data.presentation;
+                    await loadSlides();
+                    showSlide(0);
+                    showError('Presentation loaded successfully!', 'success');
+                } else {
+                    showError(data.error || 'Failed to load presentation');
+                }
+            } catch (error) {
+                showError('Error loading presentation: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
         }
+
+        async function loadSlides() {
+            try {
+                const response = await fetch(`${BASE_URL}/presentation/slides`);
+                const data = await response.json();
+                
+                if (data.slides) {
+                    currentPresentation.slidesData = data.slides;
+                    totalSlides = data.totalSlides;
+                    currentSlideIndex = data.currentSlideIndex;
+                    
+                    updatePresentationInfo({
+                        title: currentPresentation.title,
+                        currentSlide: currentSlideIndex + 1,
+                        totalSlides: totalSlides
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading slides:', error);
+            }
+        }
+
+        function updatePresentationInfo(data) {
+            document.getElementById('presentationTitle').textContent = data.title || 'Unknown Presentation';
+            document.getElementById('slideCounter').textContent = `${data.currentSlide} / ${data.totalSlides}`;
+            
+            totalSlides = data.totalSlides;
+            currentSlideIndex = data.currentSlide - 1;
+            
+            updateNavigationButtons();
+            updateProgressBar();
+        }
+
+        function showSlide(slideIndex) {
+            if (!currentPresentation || !currentPresentation.slidesData) {
+                return;
+            }
+
+            const slide = currentPresentation.slidesData[slideIndex];
+            const slideDisplay = document.getElementById('slideDisplay');
+            
+            if (slide) {
+                // Try to use embedded Google Slides viewer first
+                const embedUrl = `https://docs.google.com/presentation/d/${currentPresentation.id}/embed?start=false&loop=false&delayms=60000&slide=${slideIndex}`;
+                
+                slideDisplay.innerHTML = `
+                    <iframe 
+                        class="slide-iframe" 
+                        src="${embedUrl}"
+                        frameborder="0" 
+                        allowfullscreen="true" 
+                        mozallowfullscreen="true" 
+                        webkitallowfullscreen="true">
+                    </iframe>
+                    <div class="slide-progress" id="slideProgress"></div>
+                `;
+            } else {
+                // Fallback to text display
+                slideDisplay.innerHTML = `
+                    <div class="slide-content">
+                        <div class="slide-title">${slide ? slide.title : 'Slide Not Found'}</div>
+                        <div class="slide-text">${slide ? slide.content : 'Content not available'}</div>
+                    </div>
+                    <div class="slide-progress" id="slideProgress"></div>
+                `;
+            }
+            
+            updateProgressBar();
+        }
+
+        async function nextSlide() {
+            try {
+                const response = await fetch(`${BASE_URL}/gesture/next`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSlideIndex = data.currentSlide - 1;
+                    showSlide(currentSlideIndex);
+                    updatePresentationInfo({
+                        title: currentPresentation.title,
+                        currentSlide: data.currentSlide,
+                        totalSlides: data.totalSlides
+                    });
+                }
+            } catch (error) {
+                showError('Error navigating to next slide');
+            }
+        }
+
+        async function previousSlide() {
+            try {
+                const response = await fetch(`${BASE_URL}/gesture/previous`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSlideIndex = data.currentSlide - 1;
+                    showSlide(currentSlideIndex);
+                    updatePresentationInfo({
+                        title: currentPresentation.title,
+                        currentSlide: data.currentSlide,
+                        totalSlides: data.totalSlides
+                    });
+                }
+            } catch (error) {
+                showError('Error navigating to previous slide');
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            prevBtn.disabled = currentSlideIndex <= 0;
+            nextBtn.disabled = currentSlideIndex >= totalSlides - 1;
+        }
+
+        function updateProgressBar() {
+            const progressBar = document.getElementById('slideProgress');
+            if (totalSlides > 0) {
+                const progress = ((currentSlideIndex + 1) / totalSlides) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+        }
+
+        function showLoading(show) {
+            // You can add a loading spinner here if needed
+        }
+
+        function showError(message, type = 'error') {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                errorDiv.style.background = '#d4edda';
+                errorDiv.style.color = '#155724';
+            } else {
+                errorDiv.style.background = '#f8d7da';
+                errorDiv.style.color = '#721c24';
+            }
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (!currentPresentation) return;
+            
+            switch(e.key) {
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    if (currentSlideIndex < totalSlides - 1) nextSlide();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    if (currentSlideIndex > 0) previousSlide();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    // Go to first slide
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    // Go to last slide
+                    break;
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,70 +1,131 @@
-import {Slide, GestureCommand, PresentationState} from './types';
+import { Slide, GestureCommand, PresentationState } from './types';
 
-// Create sample data
-const slides: Slide[] = [
-    { id: "intro", title: "Introduction", content: "Welcome!", viewCount: 0 },
-    { id: "overview", title: "Overview", content: "Here's what we'll cover", viewCount: 0 },
-    { id: "details", title: "Details", content: "Deep dive into concepts", viewCount: 0 },
-    { id: "examples", title: "Examples", content: "Real world examples", viewCount: 0 },
-    { id: "conclusion", title: "Conclusion", content: "Thank you!", viewCount: 0 }
-];
+// This will hold the actual Google Slides data
+let slides: Slide[] = [];
+let googleSlidesData: any = null;
 
 let presentationState: PresentationState = {
     currentSlideIndex: 0,
     isActive: false,
-    totalSlides: slides.length,
+    totalSlides: 0,
     title: ""
 };
 
-/*
-takes no parameters
-returns Slide | null, increments currentSlideIndex as appropriate
-*/
+/**
+ * Load presentation data from Google Slides
+ */
+function loadPresentationData(googlePresentation: any): void {
+    // Store the raw Google Slides data
+    googleSlidesData = googlePresentation;
+    
+    // Convert Google Slides data to our internal format
+    slides = googlePresentation.slides.map((slide: any, index: number) => ({
+        id: slide.id,
+        title: slide.title || `Slide ${index + 1}`,
+        content: extractSlideContent(slide),
+        viewCount: 0
+    }));
+    
+    // Update presentation state
+    presentationState = {
+        currentSlideIndex: 0,
+        isActive: true,
+        totalSlides: slides.length,
+        title: googlePresentation.title
+    };
+    
+    console.log(`Loaded presentation: ${presentationState.title} with ${presentationState.totalSlides} slides`);
+}
+
+/**
+ * Extract readable content from a Google Slide
+ */
+function extractSlideContent(slide: any): string {
+    // This is a simplified content extraction
+    // might want to make this more sophisticated based on your needs
+    if (slide.title) {
+        return slide.title;
+    }
+    return `Slide content for ${slide.id}`;
+}
+
+/**
+ * Get current slide data
+ */
+function getCurrentSlide(): Slide | null {
+    if (slides.length === 0 || presentationState.currentSlideIndex >= slides.length) {
+        return null;
+    }
+    return slides[presentationState.currentSlideIndex];
+}
+
+/**
+ * Get all slides
+ */
+function getAllSlides(): Slide[] {
+    return [...slides];
+}
+
+/**
+ * Next slide with Google Slides sync
+ */
 function nextSlide(): Slide | null {
-    if (presentationState.currentSlideIndex < slides.length - 1)
-    {
+    if (presentationState.currentSlideIndex < slides.length - 1) {
         presentationState.currentSlideIndex++;
         slides[presentationState.currentSlideIndex].viewCount++;
+        
+        // Log for debugging - in a real app, you might want to trigger 
+        // some external presentation control here
+        console.log(`Advanced to slide ${presentationState.currentSlideIndex + 1}: ${slides[presentationState.currentSlideIndex].title}`);
+        
         return slides[presentationState.currentSlideIndex];
     }
     return null;
 }
 
+/**
+ * Previous slide with Google Slides sync
+ */
 function previousSlide(): Slide | null {
     if (presentationState.currentSlideIndex > 0) {
         presentationState.currentSlideIndex--;
         slides[presentationState.currentSlideIndex].viewCount++;
+        
+        console.log(`Moved back to slide ${presentationState.currentSlideIndex + 1}: ${slides[presentationState.currentSlideIndex].title}`);
+        
         return slides[presentationState.currentSlideIndex];
     }
     return null;
 }
 
-/*
-takes slideNumber parameter (0 based indexing)
-returns Slide | null
-either change currentSlideIndex or return null
-*/
-function changeSlide(slideNumber: number): Slide | null{
-    if (0 <= slideNumber && slideNumber < presentationState.totalSlides)
-    {
+/**
+ * Jump to specific slide
+ */
+function changeSlide(slideNumber: number): Slide | null {
+    if (0 <= slideNumber && slideNumber < presentationState.totalSlides) {
         presentationState.currentSlideIndex = slideNumber;
         slides[presentationState.currentSlideIndex].viewCount++;
+        
+        console.log(`Jumped to slide ${presentationState.currentSlideIndex + 1}: ${slides[presentationState.currentSlideIndex].title}`);
+        
         return slides[presentationState.currentSlideIndex];
     }
-    console.log("index out of bounds for slide length");
-        return null;
-    
+    console.log("Index out of bounds for slide length");
+    return null;
 }
 
-/*
-takes GestureCommand parameter
-returns descriptive string and console.log gesture type and confidence
-*/
+/**
+ * Handle gesture commands with real slide data
+ */
 function handleGesture(command: GestureCommand): string {
     console.log(`Received gesture: ${command.type} (confidence: ${command.confidence})`);
     
     if (command.confidence < 0.7) {
         return "Gesture confidence too low";
+    }
+    
+    if (slides.length === 0) {
+        return "No presentation loaded";
     }
     
     switch (command.type) {
@@ -105,11 +166,49 @@ function handleGesture(command: GestureCommand): string {
     }
 }
 
+/**
+ * Reset presentation state
+ */
+function resetPresentation(): void {
+    slides = [];
+    googleSlidesData = null;
+    presentationState = {
+        currentSlideIndex: 0,
+        isActive: false,
+        totalSlides: 0,
+        title: ""
+    };
+}
+
+/**
+ * Get presentation analytics
+ */
+function getPresentationAnalytics() {
+    return {
+        totalSlides: presentationState.totalSlides,
+        currentSlide: presentationState.currentSlideIndex + 1,
+        slideViewCounts: slides.map(slide => ({
+            id: slide.id,
+            title: slide.title,
+            viewCount: slide.viewCount
+        })),
+        mostViewedSlide: slides.reduce((max, slide) => 
+            slide.viewCount > max.viewCount ? slide : max, 
+            slides[0] || { viewCount: 0 }
+        )
+    };
+}
+
 export {
     nextSlide,
     previousSlide,
     changeSlide,
     handleGesture,
     presentationState,
-    slides
+    slides,
+    loadPresentationData,
+    getCurrentSlide,
+    getAllSlides,
+    resetPresentation,
+    getPresentationAnalytics
 };
